@@ -43,7 +43,7 @@ func livyBatchPostLFS(w http.ResponseWriter, r *http.Request) {
 	//className := "uk.gov.ons.lfs.LFSMonthly"
 	jsonJarStr := []byte(`{
 		"className" :  "uk.gov.ons.lfs.LFSMonthly",
-		"file"  : "path/to/assemblt/jar",
+		"file"  : "/Users/andrewurquhart/Documents/Repositories/GitHub/lfs-monthly/target/scala-2.11/lfs-monthly-assembly-1.0.jar",
 		"executorMemory": "20g",
         "args": [2000],
     	"proxyUser": "andyyyyyyyyy",
