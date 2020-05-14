@@ -1,0 +1,11 @@
+
+logFormat = "Terminal" # one of: Text | Json | Terminal
+logLevel = "Debug" #	one of: "Info" # Trace | Info | Debug | Warn | Error | Fatal
+
+livyServer = "http://localhost:8998"
+
+[service]
+
+listenAddress = ":4000"
+readTimeout = "60s"
+writeTimeout = "60s"

@@ -1,39 +1,75 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
+	livy "github.com/ONSDigital/lfs-livy/api/handlers"
+	"github.com/ONSDigital/lfs-livy/config"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"net/http"
+	"time"
 )
-
-type respData struct {
-	Title string `json:"Title"`
-	Desc string `json:"Desc"`
-	Content string `json:"Content"`
-}
-type resp []respData
 
 func main() {
 
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+
 	router := mux.NewRouter()
 
-	router.HandleFunc("/test", testHit).Methods(http.MethodGet, http.MethodPut, http.MethodPatch, http.MethodOptions)
-	router.HandleFunc("/test/json", jsonResponse).Methods(http.MethodGet)
-	http.ListenAndServe(":8999", router)
+	log.Info().
+		Str("startTime", time.Now().String()).
+		Msg("LFS Livy: Starting up")
 
-}
+	// we'll allow anything for now. May need or want to restrict this to just the UI when we know its endpoint
+	origins := []string{"*"}
+	var cors = handlers.AllowedOrigins(origins)
 
-func testHit(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Oi Oi Savaloy")
-	fmt.Println("Endpoint Hit: testHit")
+	handlers.CORS(cors)(router)
 
-}
+	jobHandler := livy.NewLivyJobHandler()
 
-func jsonResponse(w http.ResponseWriter, r *http.Request) {
-	articles := resp{
-		respData{Title: "Json Response", Desc: "A Json Description", Content: "Some Json Content"},
+	router.HandleFunc("/submit", jobHandler.RunJobHandler).Methods(http.MethodPost)
+
+	srv := &http.Server{
+		Handler:      router,
+		Addr:         getListenAddress(),
+		WriteTimeout: getWriteTimeout(),
+		ReadTimeout:  getReadtimeout(),
 	}
-	fmt.Println("Endpoint Hit: Jsonnnnnn")
-	json.NewEncoder(w).Encode(articles)
+
+	log.Info().
+		Str("listenAddress", getListenAddress()).
+		Str("writeTimeout", getWriteTimeout().String()).
+		Str("readTimeout", getReadtimeout().String()).
+		Msg("LFS Livy: Waiting for requests")
+
+	err := srv.ListenAndServe()
+	log.Fatal().
+		Err(err).
+		Str("service", "LFS").
+		Msgf("ListenAndServe failed")
+}
+
+func getListenAddress() string { return config.Config.Service.ListenAddress }
+
+func getWriteTimeout() time.Duration {
+	writeTimeout, err := time.ParseDuration(config.Config.Service.WriteTimeout)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "LFS Livy").
+			Msgf("writeTimeout configuration error")
+	}
+	return writeTimeout
+}
+
+func getReadtimeout() time.Duration {
+	readTimeout, err := time.ParseDuration(config.Config.Service.ReadTimeout)
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("service", "LFS Livy")
+	}
+	return readTimeout
 }
